@@ -77,8 +77,8 @@
           // This testAPI() function is only called in those cases. 
           function testAPI() {
             console.log('Welcome!  Fetching your information.... ');
-            FB.api('/me', function(response) {
-              console.log('Good to see you, ' + response.name + '.');
+            FB.api('/376061168966/feed', function(response) {
+              console.log(response);
             });
           }
         </script>
