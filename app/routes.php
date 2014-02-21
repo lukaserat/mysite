@@ -153,3 +153,15 @@ Route::get('faaizah', function(){
     return View::make('faaizah.layouts.home');
 
 });
+
+Route::group(array('prefix'=>'facebook'), function()
+{
+    Route::get('test', function()
+    {
+        return View::make('facebook.test');
+    });
+    Route::get('/', function()
+    {
+        return View::make('facebook.test');
+    });
+});

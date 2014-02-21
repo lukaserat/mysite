@@ -1,0 +1,32 @@
++--------+----------------------------------------------------------------+-----------+------------------------------------------+----------------+---------------+
+| Domain | URI                                                            | Name      | Action                                   | Before Filters | After Filters |
++--------+----------------------------------------------------------------+-----------+------------------------------------------+----------------+---------------+
+|        | GET sitemap/generate/{one?}/{two?}/{three?}/{four?}/{five?}    |           | SiteMapController@getGenerate            |                |               |
+|        | GET sitemap/{_missing}                                         |           | SiteMapController@missingMethod          |                |               |
+|        | GET test                                                       |           | Closure                                  |                |               |
+|        | GET test2                                                      |           | Closure                                  |                |               |
+|        | GET 404                                                        | page-404  | Closure                                  |                |               |
+|        | GET render-vcard.png                                           |           | Closure                                  |                |               |
+|        | POST send-letter                                               |           | Closure                                  |                |               |
+|        | GET /                                                          | portfolio | Closure                                  |                |               |
+|        | GET pwd                                                        |           | Closure                                  |                |               |
+|        | GET blog/admin                                                 |           | Closure                                  |                |               |
+|        | GET blog/wp-admin                                              |           | Closure                                  |                |               |
+|        | GET urshrt                                                     |           | Closure                                  |                |               |
+|        | GET uh                                                         |           | Closure                                  |                |               |
+|        | GET uh/h/test/{one?}/{two?}/{three?}/{four?}/{five?}           |           | UrshrtController@getTest                 |                |               |
+|        | GET uh/h/index/{one?}/{two?}/{three?}/{four?}/{five?}          |           | UrshrtController@getIndex                |                |               |
+|        | GET uh/h                                                       |           | UrshrtController@getIndex                |                |               |
+|        | POST uh/h/long-url/{one?}/{two?}/{three?}/{four?}/{five?}      |           | UrshrtController@postLongUrl             |                |               |
+|        | GET uh/h/what/{one?}/{two?}/{three?}/{four?}/{five?}           |           | UrshrtController@getWhat                 |                |               |
+|        | GET uh/h/why/{one?}/{two?}/{three?}/{four?}/{five?}            |           | UrshrtController@getWhy                  |                |               |
+|        | GET uh/h/how/{one?}/{two?}/{three?}/{four?}/{five?}            |           | UrshrtController@getHow                  |                |               |
+|        | GET uh/h/{_missing}                                            |           | UrshrtController@missingMethod           |                |               |
+|        | GET uh/x/customized-url/{one?}/{two?}/{three?}/{four?}/{five?} |           | UrshrtExampleController@getCustomizedUrl |                |               |
+|        | GET uh/x/{_missing}                                            |           | UrshrtExampleController@missingMethod    |                |               |
+|        | POST uh/long-url                                               |           | UrshrtController@postLongUrl             |                |               |
+|        | GET uh/{shortUrl}                                              |           | Closure                                  |                |               |
+|        | GET faaizah                                                    |           | Closure                                  |                |               |
+|        | GET facebook/test                                              |           | Closure                                  |                |               |
+|        | GET facebook                                                   |           | Closure                                  |                |               |
++--------+----------------------------------------------------------------+-----------+------------------------------------------+----------------+---------------+
