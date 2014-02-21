@@ -1,1 +1,3 @@
 [20-Feb-2014 20:08:03] PHP Warning:  Unexpected character in input:  '\' (ASCII=92) state=1 in - on line 479
+[20-Feb-2014 21:04:03] PHP Warning:  Unexpected character in input:  '\' (ASCII=92) state=1 in /home4/lacerna/l4template/artisan on line 46
+[20-Feb-2014 21:04:03] PHP Parse error:  syntax error, unexpected T_STRING in /home4/lacerna/l4template/artisan on line 46

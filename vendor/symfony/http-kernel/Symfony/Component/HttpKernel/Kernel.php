@@ -24,7 +24,6 @@ use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Component\DependencyInjection\Loader\ClosureLoader;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\HttpKernel\Bundle\BundleInterface;
 use Symfony\Component\HttpKernel\Config\FileLocator;
 use Symfony\Component\HttpKernel\DependencyInjection\MergeExtensionConfigurationPass;
@@ -48,23 +47,22 @@ abstract class Kernel implements KernelInterface, TerminableInterface
     /**
      * @var BundleInterface[]
      */
-    protected $bundles;
+    protected $bundles = array();
 
     protected $bundleMap;
     protected $container;
     protected $rootDir;
     protected $environment;
     protected $debug;
-    protected $booted;
+    protected $booted = false;
     protected $name;
     protected $startTime;
-    protected $classes;
     protected $loadClassCache;
 
-    const VERSION         = '2.3.3-DEV';
-    const VERSION_ID      = '20303';
+    const VERSION         = '2.4.3-DEV';
+    const VERSION_ID      = '20403';
     const MAJOR_VERSION   = '2';
-    const MINOR_VERSION   = '3';
+    const MINOR_VERSION   = '4';
     const RELEASE_VERSION = '3';
     const EXTRA_VERSION   = 'DEV';
 
@@ -80,11 +78,8 @@ abstract class Kernel implements KernelInterface, TerminableInterface
     {
         $this->environment = $environment;
         $this->debug = (Boolean) $debug;
-        $this->booted = false;
         $this->rootDir = $this->getRootDir();
         $this->name = $this->getName();
-        $this->classes = array();
-        $this->bundles = array();
 
         if ($this->debug) {
             $this->startTime = microtime(true);
@@ -191,7 +186,7 @@ abstract class Kernel implements KernelInterface, TerminableInterface
     }
 
     /**
-     * Gets a http kernel from the container
+     * Gets a HTTP kernel from the container
      *
      * @return HttpKernel
      */
@@ -499,7 +494,9 @@ abstract class Kernel implements KernelInterface, TerminableInterface
         }
 
         // look for orphans
-        if (count($diff = array_values(array_diff(array_keys($directChildren), array_keys($this->bundles))))) {
+        if (!empty($directChildren) && count($diff = array_diff_key($directChildren, $this->bundles))) {
+            $diff = array_keys($diff);
+
             throw new \LogicException(sprintf('Bundle "%s" extends bundle "%s", which is not registered.', $directChildren[$diff[0]], $diff[0]));
         }
 
@@ -714,7 +711,7 @@ abstract class Kernel implements KernelInterface, TerminableInterface
 
         $content = $dumper->dump(array('class' => $class, 'base_class' => $baseClass));
         if (!$this->debug) {
-            $content = self::stripComments($content);
+            $content = static::stripComments($content);
         }
 
         $cache->write($content, $container->getResources());

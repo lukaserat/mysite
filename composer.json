@@ -3,8 +3,7 @@
 	"description": "The Laravel Framework.",
 	"keywords": ["framework", "laravel"],
 	"require": {
-		"laravel/framework": "4.1.*",
-		"jasonlewis/enhanced-router": "1.0.*"
+		"laravel/framework": "4.1.*"
 	},
 	"autoload": {
 		"classmap": [

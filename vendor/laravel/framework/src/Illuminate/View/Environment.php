@@ -32,7 +32,7 @@ class Environment {
 	/**
 	 * The IoC container instance.
 	 *
-	 * @var \Illuminate\Container
+	 * @var \Illuminate\Container\Container
 	 */
 	protected $container;
 
@@ -103,7 +103,7 @@ class Environment {
 	}
 
 	/**
-	 * Get a evaluated view contents for the given view.
+	 * Get the evaluated view contents for the given view.
 	 *
 	 * @param  string  $view
 	 * @param  array   $data
@@ -116,7 +116,9 @@ class Environment {
 
 		$data = array_merge($mergeData, $this->parseData($data));
 
-		return new View($this, $this->getEngineFromPath($path), $view, $path, $data);
+		$this->callCreator($view = new View($this, $this->getEngineFromPath($path), $view, $path, $data));
+
+		return $view;
 	}
 
 	/**
@@ -131,7 +133,7 @@ class Environment {
 	}
 
 	/**
-	 * Get a evaluated view contents for a named view.
+	 * Get the evaluated view contents for a named view.
 	 *
 	 * @param string $view
 	 * @param mixed $data
@@ -265,42 +267,80 @@ class Environment {
 	}
 
 	/**
+	 * Register a view creator event.
+	 *
+	 * @param  array|string  $views
+	 * @param  \Closure|string  $callback
+	 * @return array
+	 */
+	public function creator($views, $callback)
+	{
+		$creators = array();
+
+		foreach ((array) $views as $view)
+		{
+			$creators[] = $this->addViewEvent($view, $callback, 'creating: ');
+		}
+
+		return $creators;
+	}
+
+	/**
+	 * Register multiple view composers via an array.
+	 *
+	 * @param array  $composers
+	 * @return array
+	 */
+	public function composers(array $composers)
+	{
+		$registered = array();
+
+		foreach ($composers as $callback => $views)
+		{
+			$registered += $this->composer($views, $callback);
+		}
+
+		return $registered;
+	}
+
+	/**
 	 * Register a view composer event.
 	 *
 	 * @param  array|string  $views
-	 * @param  Closure|string  $callback
-	 * @return Closure
+	 * @param  \Closure|string  $callback
+	 * @return array
 	 */
-	public function composer($views, $callback)
+	public function composer($views, $callback, $priority = null)
 	{
 		$composers = array();
 
 		foreach ((array) $views as $view)
 		{
-			$composers[] = $this->addComposer($view, $callback);
+			$composers[] = $this->addViewEvent($view, $callback, 'composing: ', $priority);
 		}
 
 		return $composers;
 	}
 
 	/**
-	 * Add a composer for a given view.
+	 * Add an event for a given view.
 	 *
 	 * @param  string  $view
 	 * @param  Closure|string  $callback
+	 * @param  string  $prefix
 	 * @return Closure
 	 */
-	protected function addComposer($view, $callback)
+	protected function addViewEvent($view, $callback, $prefix = 'composing: ', $priority = null)
 	{
 		if ($callback instanceof Closure)
 		{
-			$this->events->listen('composing: '.$view, $callback);
+			$this->addEventListener($prefix.$view, $callback, $priority);
 
 			return $callback;
 		}
 		elseif (is_string($callback))
 		{
-			return $this->addClassComposer($view, $callback);
+			return $this->addClassEvent($view, $callback, $prefix, $priority);
 		}
 	}
 
@@ -309,33 +349,54 @@ class Environment {
 	 *
 	 * @param  string   $view
 	 * @param  string   $class
-	 * @return Closure
+	 * @param  string   $prefix
+	 * @return \Closure
 	 */
-	protected function addClassComposer($view, $class)
+	protected function addClassEvent($view, $class, $prefix, $priority = null)
 	{
-		$name = 'composing: '.$view;
+		$name = $prefix.$view;
 
 		// When registering a class based view "composer", we will simply resolve the
 		// classes from the application IoC container then call the compose method
 		// on the instance. This allows for convenient, testable view composers.
-		$callback = $this->buildClassComposerCallback($class);
+		$callback = $this->buildClassEventCallback($class, $prefix);
 
-		$this->events->listen($name, $callback);
+		$this->addEventListener($name, $callback, $priority);
 
 		return $callback;
 	}
 
 	/**
+	 * Add a listener to the event dispatcher.
+	 *
+	 * @param string   $name
+	 * @param \Closure $callback
+	 * @param integer  $priority
+	 */
+	protected function addEventListener($name, $callback, $priority = null)
+	{
+		if (is_null($priority))
+		{
+			$this->events->listen($name, $callback);
+		}
+		else
+		{
+			$this->events->listen($name, $callback, $priority);
+		}
+	}
+
+	/**
 	 * Build a class based container callback Closure.
 	 *
-	 * @param  string   $class
-	 * @return Closure
+	 * @param  string  $class
+	 * @param  string  $prefix
+	 * @return \Closure
 	 */
-	protected function buildClassComposerCallback($class)
+	protected function buildClassEventCallback($class, $prefix)
 	{
 		$container = $this->container;
 
-		list($class, $method) = $this->parseClassComposer($class);
+		list($class, $method) = $this->parseClassEvent($class, $prefix);
 
 		// Once we have the class and method name, we can build the Closure to resolve
 		// the instance out of the IoC container and call the method on it with the
@@ -352,11 +413,21 @@ class Environment {
 	 * Parse a class based composer name.
 	 *
 	 * @param  string  $class
+	 * @param  string  $prefix
 	 * @return array
 	 */
-	protected function parseClassComposer($class)
+	protected function parseClassEvent($class, $prefix)
 	{
-		return str_contains($class, '@') ? explode('@', $class) : array($class, 'compose');
+		if (str_contains($class, '@'))
+		{
+			return explode('@', $class);
+		}
+		else
+		{
+			$method = str_contains($prefix, 'composing') ? 'compose' : 'create';
+
+			return array($class, $method);
+		}
 	}
 
 	/**
@@ -371,6 +442,17 @@ class Environment {
 	}
 
 	/**
+	 * Call the creator for a given view.
+	 *
+	 * @param  \Illuminate\View\View  $view
+	 * @return void
+	 */
+	public function callCreator(View $view)
+	{
+		$this->events->fire('creating: '.$view->getName(), array($view));
+	}
+
+	/**
 	 * Start injecting content into a section.
 	 *
 	 * @param  string  $section
@@ -381,7 +463,7 @@ class Environment {
 	{
 		if ($content === '')
 		{
-			ob_start() and $this->sectionStack[] = $section;
+			ob_start() && $this->sectionStack[] = $section;
 		}
 		else
 		{
@@ -434,6 +516,27 @@ class Environment {
 	}
 
 	/**
+	 * Stop injecting content into a section and append it.
+	 *
+	 * @return string
+	 */
+	public function appendSection()
+	{
+		$last = array_pop($this->sectionStack);
+
+		if (isset($this->sections[$last]))
+		{
+			$this->sections[$last] .= ob_get_clean();
+		}
+		else
+		{
+			$this->sections[$last] = ob_get_clean();
+		}
+
+		return $last;
+	}
+
+	/**
 	 * Append content to a given section.
 	 *
 	 * @param  string  $section
@@ -476,6 +579,16 @@ class Environment {
 		$this->sections = array();
 
 		$this->sectionStack = array();
+	}
+
+	/**
+	 * Flush all of the section contents if done rendering.
+	 *
+	 * @return void
+	 */
+	public function flushSectionsIfDoneRendering()
+	{
+		if ($this->doneRendering()) $this->flushSections();
 	}
 
 	/**
@@ -532,6 +645,18 @@ class Environment {
 	}
 
 	/**
+	 * Prepend a new namespace to the loader.
+	 *
+	 * @param  string  $namespace
+	 * @param  string|array  $hints
+	 * @return void
+	 */
+	public function prependNamespace($namespace, $hints)
+	{
+		$this->finder->prependNamespace($namespace, $hints);
+	}
+
+	/**
 	 * Register a valid view extension and its engine.
 	 *
 	 * @param  string   $extension
@@ -584,6 +709,16 @@ class Environment {
 	}
 
 	/**
+	 * Set the view finder instance.
+	 *
+	 * @return void
+	 */
+	public function setFinder(ViewFinderInterface $finder)
+	{
+		$this->finder = $finder;
+	}
+
+	/**
 	 * Get the event dispatcher instance.
 	 *
 	 * @return \Illuminate\Events\Dispatcher
@@ -591,6 +726,17 @@ class Environment {
 	public function getDispatcher()
 	{
 		return $this->events;
+	}
+
+	/**
+	 * Set the event dispatcher instance.
+	 *
+	 * @param  \Illuminate\Events\Dispatcher
+	 * @return void
+	 */
+	public function setDispatcher(Dispatcher $events)
+	{
+		$this->events = $events;
 	}
 
 	/**
@@ -612,6 +758,18 @@ class Environment {
 	public function setContainer(Container $container)
 	{
 		$this->container = $container;
+	}
+
+	/**
+	 * Get an item from the shared data.
+	 *
+	 * @param  string  $key
+	 * @param  mixed   $default
+	 * @return mixed
+	 */
+	public function shared($key, $default = null)
+	{
+		return array_get($this->shared, $key, $default);
 	}
 
 	/**
